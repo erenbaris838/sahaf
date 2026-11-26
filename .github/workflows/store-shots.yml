@@ -1,0 +1,366 @@
+name: Store screenshots
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/store-shots.yml'
+permissions:
+  contents: write
+jobs:
+  shots:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: site
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install
+        run: |
+          pip install playwright pillow
+          python -m playwright install --with-deps chromium
+          sudo apt-get update -q
+          sudo apt-get install -y fonts-noto-cjk fonts-noto-cjk-extra fonts-inter || sudo apt-get install -y fonts-noto-cjk
+          sudo apt-get install -y t1-xfree86-nonfree || true
+          mkdir -p ~/.fonts
+          curl -fsSL --retry 4 -o ~/.fonts/Lora.ttf "https://raw.githubusercontent.com/google/fonts/main/ofl/lora/Lora%5Bwght%5D.ttf"
+          mkdir -p ~/.config/fontconfig
+          cat > ~/.config/fontconfig/fonts.conf <<'XML'
+          <?xml version="1.0"?>
+          <!DOCTYPE fontconfig SYSTEM "fonts.dtd">
+          <fontconfig>
+            <alias><family>sans-serif</family><prefer><family>Inter</family><family>Noto Sans CJK JP</family></prefer></alias>
+            <alias><family>system-ui</family><prefer><family>Inter</family><family>Noto Sans CJK JP</family></prefer></alias>
+            <alias><family>serif</family><prefer><family>Bitstream Charter</family><family>Lora</family><family>Noto Serif CJK JP</family></prefer></alias>
+          </fontconfig>
+          XML
+          fc-cache -f
+          fc-match Lora; fc-match "Bitstream Charter"; fc-match "Noto Serif CJK JP"
+      - name: Sample books
+        run: |
+          mkdir -p work && cd work
+          curl -fsSL --retry 4 -o gut.zip https://raw.githubusercontent.com/nltk/nltk_data/gh-pages/packages/corpora/gutenberg.zip
+          unzip -q gut.zip
+          cat > stories.py <<'PY'
+          # Original sample story (written for Sahaf's Store screenshots), in 10 languages.
+          S = {}
+          S['en'] = dict(title='The Lighthouse Keeper', search='lighthouse',
+          chapters=['The Box of Books','The Hundred and Twelve Steps','Winter Storms','The Weather Notebook','A Letter from the Town','The Ship in the Story','Spring on the Island','The Last Page'],
+          text='''Every evening, when the last boat had left the harbour and the gulls had gone quiet, Elif climbed the hundred and twelve steps of the lighthouse. Her grandfather was always waiting at the top, a cup of tea in his hands, watching the sea turn from silver to grey to deep blue.
+          “You are late,” he would say, although she never was.
+          The lighthouse stood on a small island at the end of the bay. There was no road and no shop, only rocks, a few stubborn pine trees and the wind. In winter the storms were so strong that the windows hummed like the strings of an old instrument. Her grandfather had kept the light burning for forty years, and in all that time, he said, he had never once been bored.
+          “How is that possible?” Elif asked him one night. “There is nothing here.”
+          He smiled and pointed to a wooden box under his bed. Inside were books — hundreds of them, with soft, worn covers and pages that smelled of salt and dust. There were stories of travellers and kings, of distant cities, of people who had lived long ago and people who had never lived at all.
+          “When the sea is too loud to sleep,” he said, “I read. And then the island becomes very large.”
+          From that night on, Elif came earlier. She sat by the warm lamp with a blanket around her shoulders and read while her grandfather wrote the weather in his notebook. Sometimes she read aloud, and he closed his eyes and listened, nodding at the good parts.
+          When the storm of that winter finally came, the lights of the town went out one by one. Only the lighthouse kept shining, turning slowly above the dark water. Elif did not feel afraid. She had a book open on her knees, and the ship in the story was sailing through a storm too.
+          “Will they make it?” her grandfather asked.
+          “I don’t know yet,” she said, and turned the page.''')
+          S['tr'] = dict(title='Deniz Feneri Bekçisi', search='fener',
+          chapters=['Kitap Sandığı','Yüz On İki Basamak','Kış Fırtınaları','Hava Defteri','Kasabadan Bir Mektup','Hikâyedeki Gemi','Adada Bahar','Son Sayfa'],
+          text='''Her akşam, son tekne limandan ayrılıp martılar susunca Elif, deniz fenerinin yüz on iki basamağını tırmanırdı. Dedesi her zaman tepede, elinde bir bardak çayla onu beklerdi; denizin gümüş renginden griye, griden koyu maviye dönüşünü izlerdi.
+          “Geç kaldın,” derdi, oysa Elif hiç geç kalmazdı.
+          Fener, körfezin ucundaki küçük bir adadaydı. Ne yol vardı ne dükkân; yalnızca kayalar, birkaç inatçı çam ağacı ve rüzgâr. Kışın fırtınalar öyle sert eserdi ki camlar eski bir sazın telleri gibi uğuldardı. Dedesi kırk yıldır feneri yakıyordu ve söylediğine göre bunca zamanda bir kez bile sıkılmamıştı.
+          “Bu nasıl olabilir?” diye sordu Elif bir gece. “Burada hiçbir şey yok.”
+          Dedesi gülümsedi ve yatağının altındaki tahta sandığı gösterdi. İçi kitap doluydu; yüzlercesi, yumuşamış kapakları ve tuz ile toz kokan sayfalarıyla. Gezginlerin ve kralların, uzak şehirlerin, çok eskiden yaşamış insanların ve hiç yaşamamış insanların hikâyeleri vardı.
+          “Deniz uyuyamayacağım kadar gürültülü olunca okurum,” dedi. “O zaman ada kocaman olur.”
+          O geceden sonra Elif daha erken gelmeye başladı. Omuzlarında bir battaniye, sıcak lambanın yanında oturup okurdu; dedesi de defterine havayı yazardı. Bazen sesli okurdu, dedesi gözlerini kapatıp dinler, güzel yerlerde başını sallardı.
+          O kışın fırtınası sonunda geldiğinde kasabanın ışıkları birer birer söndü. Yalnızca fener, karanlık suyun üzerinde yavaşça dönerek parlamaya devam etti. Elif korkmadı. Dizlerinin üstünde açık bir kitap vardı ve hikâyedeki gemi de bir fırtınanın içinden geçiyordu.
+          “Kurtulacaklar mı?” diye sordu dedesi.
+          “Henüz bilmiyorum,” dedi Elif ve sayfayı çevirdi.''')
+          S['de'] = dict(title='Der Leuchtturmwärter', search='Leuchtturm',
+          chapters=['Die Bücherkiste','Hundertzwölf Stufen','Winterstürme','Das Wetterbuch','Ein Brief aus der Stadt','Das Schiff in der Geschichte','Frühling auf der Insel','Die letzte Seite'],
+          text='''Jeden Abend, wenn das letzte Boot den Hafen verlassen hatte und die Möwen still geworden waren, stieg Elif die hundertzwölf Stufen des Leuchtturms hinauf. Ihr Großvater wartete immer oben, eine Tasse Tee in den Händen, und sah zu, wie das Meer von Silber zu Grau und dann zu tiefem Blau wurde.
+          „Du bist spät dran“, sagte er dann, obwohl sie es nie war.
+          Der Leuchtturm stand auf einer kleinen Insel am Ende der Bucht. Es gab keine Straße und keinen Laden, nur Felsen, ein paar trotzige Kiefern und den Wind. Im Winter waren die Stürme so stark, dass die Fenster summten wie die Saiten eines alten Instruments. Vierzig Jahre lang hatte ihr Großvater das Licht brennen lassen, und in all der Zeit, sagte er, habe er sich kein einziges Mal gelangweilt.
+          „Wie ist das möglich?“, fragte Elif ihn eines Nachts. „Hier gibt es doch nichts.“
+          Er lächelte und zeigte auf eine Holzkiste unter seinem Bett. Darin lagen Bücher – Hunderte, mit weichen, abgegriffenen Einbänden und Seiten, die nach Salz und Staub rochen. Es gab Geschichten von Reisenden und Königen, von fernen Städten, von Menschen, die vor langer Zeit gelebt hatten, und von Menschen, die nie gelebt hatten.
+          „Wenn das Meer zu laut zum Schlafen ist“, sagte er, „lese ich. Und dann wird die Insel sehr groß.“
+          Von dieser Nacht an kam Elif früher. Sie saß mit einer Decke um die Schultern an der warmen Lampe und las, während ihr Großvater das Wetter in sein Notizbuch schrieb. Manchmal las sie laut vor, und er schloss die Augen, hörte zu und nickte an den schönen Stellen.
+          Als der Sturm jenes Winters endlich kam, gingen die Lichter der Stadt eines nach dem anderen aus. Nur der Leuchtturm leuchtete weiter und drehte sich langsam über dem dunklen Wasser. Elif hatte keine Angst. Auf ihren Knien lag ein offenes Buch, und auch das Schiff in der Geschichte segelte durch einen Sturm.
+          „Schaffen sie es?“, fragte ihr Großvater.
+          „Das weiß ich noch nicht“, sagte sie und blätterte um.''')
+          S['es'] = dict(title='El guardián del faro', search='faro',
+          chapters=['La caja de libros','Los ciento doce escalones','Tormentas de invierno','El cuaderno del tiempo','Una carta del pueblo','El barco de la historia','Primavera en la isla','La última página'],
+          text='''Cada tarde, cuando la última barca había salido del puerto y las gaviotas se habían callado, Elif subía los ciento doce escalones del faro. Su abuelo siempre la esperaba arriba, con una taza de té entre las manos, mirando cómo el mar pasaba del plateado al gris y del gris al azul profundo.
+          —Llegas tarde —le decía, aunque ella nunca llegaba tarde.
+          El faro estaba en una pequeña isla al final de la bahía. No había carretera ni tiendas, solo rocas, unos cuantos pinos tercos y el viento. En invierno las tormentas eran tan fuertes que las ventanas zumbaban como las cuerdas de un viejo instrumento. Su abuelo llevaba cuarenta años manteniendo la luz encendida y, según decía, en todo ese tiempo no se había aburrido ni una sola vez.
+          —¿Cómo es posible? —le preguntó Elif una noche—. Aquí no hay nada.
+          Él sonrió y señaló una caja de madera debajo de la cama. Dentro había libros, cientos de ellos, con tapas blandas y gastadas y páginas que olían a sal y a polvo. Había historias de viajeros y reyes, de ciudades lejanas, de personas que vivieron hace mucho tiempo y de personas que nunca existieron.
+          —Cuando el mar hace demasiado ruido para dormir —dijo—, leo. Y entonces la isla se vuelve muy grande.
+          Desde aquella noche, Elif llegaba más temprano. Se sentaba junto a la lámpara caliente, con una manta sobre los hombros, y leía mientras su abuelo anotaba el tiempo en su cuaderno. A veces leía en voz alta, y él cerraba los ojos y escuchaba, asintiendo en las mejores partes.
+          Cuando por fin llegó la tormenta de aquel invierno, las luces del pueblo se apagaron una tras otra. Solo el faro siguió brillando, girando despacio sobre el agua oscura. Elif no tuvo miedo. Tenía un libro abierto sobre las rodillas, y el barco de la historia también navegaba en medio de una tormenta.
+          —¿Lo conseguirán? —preguntó su abuelo.
+          —Todavía no lo sé —dijo ella, y pasó la página.''')
+          S['fr'] = dict(title='Le gardien du phare', search='phare',
+          chapters=['La caisse de livres','Les cent douze marches','Tempêtes d’hiver','Le carnet météo','Une lettre de la ville','Le navire de l’histoire','Le printemps sur l’île','La dernière page'],
+          text='''Chaque soir, quand le dernier bateau avait quitté le port et que les mouettes s’étaient tues, Elif montait les cent douze marches du phare. Son grand-père l’attendait toujours en haut, une tasse de thé entre les mains, regardant la mer passer de l’argent au gris, puis du gris au bleu profond.
+          « Tu es en retard », disait-il, alors qu’elle ne l’était jamais.
+          Le phare se dressait sur une petite île au bout de la baie. Il n’y avait ni route ni boutique, seulement des rochers, quelques pins obstinés et le vent. En hiver, les tempêtes étaient si fortes que les vitres vibraient comme les cordes d’un vieil instrument. Son grand-père entretenait la lumière depuis quarante ans et, disait-il, il ne s’était jamais ennuyé une seule fois.
+          « Comment est-ce possible ? lui demanda Elif un soir. Il n’y a rien ici. »
+          Il sourit et montra une caisse en bois sous son lit. Elle était remplie de livres, des centaines, aux couvertures douces et usées, aux pages qui sentaient le sel et la poussière. On y trouvait des histoires de voyageurs et de rois, de villes lointaines, de gens qui avaient vécu il y a très longtemps et de gens qui n’avaient jamais existé.
+          « Quand la mer est trop bruyante pour dormir, dit-il, je lis. Et alors l’île devient immense. »
+          À partir de cette nuit-là, Elif arriva plus tôt. Elle s’asseyait près de la lampe chaude, une couverture sur les épaules, et lisait pendant que son grand-père notait le temps dans son carnet. Parfois elle lisait à voix haute ; il fermait les yeux, écoutait et hochait la tête aux meilleurs passages.
+          Quand la tempête de cet hiver-là arriva enfin, les lumières de la ville s’éteignirent une à une. Seul le phare continua de briller, tournant lentement au-dessus de l’eau sombre. Elif n’avait pas peur. Elle avait un livre ouvert sur les genoux, et le navire de l’histoire traversait lui aussi une tempête.
+          « Est-ce qu’ils vont s’en sortir ? demanda son grand-père.
+          — Je ne sais pas encore », répondit-elle en tournant la page.''')
+          S['it'] = dict(title='Il guardiano del faro', search='faro',
+          chapters=['La cassa dei libri','I centododici gradini','Tempeste d’inverno','Il quaderno del tempo','Una lettera dal paese','La nave della storia','Primavera sull’isola','L’ultima pagina'],
+          text='''Ogni sera, quando l’ultima barca aveva lasciato il porto e i gabbiani si erano zittiti, Elif saliva i centododici gradini del faro. Suo nonno la aspettava sempre in cima, con una tazza di tè tra le mani, guardando il mare passare dall’argento al grigio e dal grigio al blu profondo.
+          «Sei in ritardo», diceva, anche se lei non lo era mai.
+          Il faro sorgeva su una piccola isola in fondo alla baia. Non c’erano strade né negozi, solo rocce, qualche pino ostinato e il vento. D’inverno le tempeste erano così forti che i vetri vibravano come le corde di un vecchio strumento. Suo nonno teneva accesa la luce da quarant’anni e, diceva, in tutto quel tempo non si era mai annoiato nemmeno una volta.
+          «Come è possibile?» gli chiese Elif una notte. «Qui non c’è niente.»
+          Lui sorrise e indicò una cassa di legno sotto il letto. Dentro c’erano libri, centinaia, con copertine morbide e consumate e pagine che sapevano di sale e di polvere. C’erano storie di viaggiatori e di re, di città lontane, di persone vissute tanto tempo fa e di persone mai esistite.
+          «Quando il mare è troppo rumoroso per dormire», disse, «io leggo. E allora l’isola diventa grandissima.»
+          Da quella notte Elif arrivò prima. Si sedeva accanto alla lampada calda, con una coperta sulle spalle, e leggeva mentre il nonno annotava il tempo nel suo quaderno. A volte leggeva ad alta voce, e lui chiudeva gli occhi e ascoltava, annuendo nei punti più belli.
+          Quando finalmente arrivò la tempesta di quell’inverno, le luci del paese si spensero una dopo l’altra. Solo il faro continuò a brillare, girando lentamente sopra l’acqua scura. Elif non aveva paura. Aveva un libro aperto sulle ginocchia, e anche la nave della storia stava attraversando una tempesta.
+          «Ce la faranno?» chiese il nonno.
+          «Non lo so ancora», disse lei, e girò pagina.''')
+          S['pt'] = dict(title='O guardião do farol', search='farol',
+          chapters=['A caixa de livros','Os cento e doze degraus','Tempestades de inverno','O caderno do tempo','Uma carta da cidade','O navio da história','Primavera na ilha','A última página'],
+          text='''Todas as tardes, quando o último barco saía do porto e as gaivotas se calavam, Elif subia os cento e doze degraus do farol. O avô sempre a esperava lá em cima, com uma xícara de chá nas mãos, olhando o mar passar do prateado ao cinza e do cinza ao azul profundo.
+          — Você está atrasada — dizia ele, embora ela nunca estivesse.
+          O farol ficava numa pequena ilha no fim da baía. Não havia estrada nem loja, só pedras, alguns pinheiros teimosos e o vento. No inverno, as tempestades eram tão fortes que as janelas zumbiam como as cordas de um instrumento antigo. O avô mantinha a luz acesa havia quarenta anos e, segundo ele, em todo esse tempo nunca tinha ficado entediado nem uma vez.
+          — Como isso é possível? — perguntou Elif certa noite. — Aqui não tem nada.
+          Ele sorriu e apontou para uma caixa de madeira debaixo da cama. Dentro havia livros, centenas deles, com capas macias e gastas e páginas que cheiravam a sal e poeira. Havia histórias de viajantes e reis, de cidades distantes, de pessoas que viveram há muito tempo e de pessoas que nunca existiram.
+          — Quando o mar faz barulho demais para dormir — disse ele —, eu leio. E então a ilha fica enorme.
+          Desde aquela noite, Elif passou a chegar mais cedo. Sentava-se perto da lâmpada quente, com um cobertor nos ombros, e lia enquanto o avô anotava o tempo no caderno. Às vezes lia em voz alta, e ele fechava os olhos e escutava, balançando a cabeça nas melhores partes.
+          Quando a tempestade daquele inverno finalmente chegou, as luzes da cidade foram se apagando uma a uma. Só o farol continuou brilhando, girando devagar sobre a água escura. Elif não sentiu medo. Tinha um livro aberto no colo, e o navio da história também atravessava uma tempestade.
+          — Será que eles conseguem? — perguntou o avô.
+          — Ainda não sei — disse ela, e virou a página.''')
+          S['ru'] = dict(title='Смотритель маяка', search='маяк',
+          chapters=['Ящик с книгами','Сто двенадцать ступеней','Зимние бури','Тетрадь погоды','Письмо из города','Корабль из истории','Весна на острове','Последняя страница'],
+          text='''Каждый вечер, когда последняя лодка уходила из гавани и чайки затихали, Элиф поднималась по ста двенадцати ступеням маяка. Дедушка всегда ждал её наверху с чашкой чая в руках и смотрел, как море из серебристого становится серым, а потом тёмно-синим.
+          — Ты опоздала, — говорил он, хотя она никогда не опаздывала.
+          Маяк стоял на маленьком острове в конце залива. Там не было ни дороги, ни магазина — только скалы, несколько упрямых сосен и ветер. Зимой бури были такими сильными, что стёкла гудели, как струны старого инструмента. Дедушка сорок лет поддерживал огонь маяка и, по его словам, за всё это время ни разу не заскучал.
+          — Как такое возможно? — спросила его Элиф однажды ночью. — Здесь же ничего нет.
+          Он улыбнулся и показал на деревянный ящик под кроватью. В нём лежали книги — сотни книг в мягких потёртых обложках, со страницами, пахнущими солью и пылью. Там были истории о путешественниках и королях, о далёких городах, о людях, живших давным-давно, и о людях, которых никогда не было.
+          — Когда море шумит так, что не уснуть, — сказал он, — я читаю. И тогда остров становится очень большим.
+          С той ночи Элиф стала приходить раньше. Она садилась у тёплой лампы, укрыв плечи пледом, и читала, пока дедушка записывал погоду в свою тетрадь. Иногда она читала вслух, а он закрывал глаза, слушал и кивал в самых хороших местах.
+          Когда наконец пришла буря той зимы, огни города погасли один за другим. Только маяк продолжал светить, медленно поворачиваясь над тёмной водой. Элиф не было страшно. На коленях у неё лежала открытая книга, и корабль в истории тоже плыл сквозь бурю.
+          — Они справятся? — спросил дедушка.
+          — Пока не знаю, — ответила она и перевернула страницу.''')
+          S['ja'] = dict(title='灯台守', search='灯台',
+          chapters=['本の箱','百十二段の階段','冬の嵐','天気のノート','町からの手紙','物語の中の船','島の春','最後のページ'],
+          text='''毎日夕方になると、最後の船が港を出て、カモメたちが静かになるころ、エリフは灯台の百十二段の階段をのぼった。てっぺんではいつも祖父が、湯気の立つお茶を手に待っていて、海の色が銀から灰色へ、灰色から深い青へと変わっていくのを眺めていた。
+          「遅かったな」と祖父は言った。エリフが遅れたことなど一度もなかったのに。
+          灯台は湾のはずれの小さな島に立っていた。道も店もなく、あるのは岩と、何本かの頑固な松の木と、風だけだった。冬の嵐はとても強く、窓ガラスが古い楽器の弦のようにうなった。祖父は四十年ものあいだ灯台の明かりを守ってきたが、そのあいだ一度も退屈したことがないと言った。
+          「どうしてそんなことができるの？」ある晩、エリフはたずねた。「ここには何もないのに」
+          祖父はほほえんで、ベッドの下の木の箱を指さした。中には本がぎっしり詰まっていた。何百冊もの本が、やわらかくすり切れた表紙と、潮とほこりのにおいがするページをしていた。旅人や王さまの話、遠い町の話、ずっと昔に生きた人たちの話、そして一度も生きたことのない人たちの話があった。
+          「海がうるさくて眠れない夜は、本を読むんだ」と祖父は言った。「そうすると、島はとても大きくなる」
+          その夜から、エリフは早く来るようになった。肩に毛布をかけて、あたたかいランプのそばで本を読み、祖父はノートに天気を書きつけた。ときどき声に出して読むと、祖父は目を閉じて耳をかたむけ、いい場面になるとうなずいた。
+          祖父のノートには、毎日の風の向きと波の高さが、きちょうめんな字で書かれていた。そのすみに、エリフは読み終えた本の名前を小さく書きこんでいった。ページはしだいに、天気の記録と本の題名でいっぱいになった。「これでこのノートは、わしのものでもあり、おまえのものでもあるな」と祖父は言った。
+          ある日、町の郵便屋さんが小さな舟で包みを届けにきた。開けてみると、新しい本が何冊かと、一枚のカードが入っていた。「灯台のふたりの読書家へ」。町の図書館の人が、ふたりのことを聞いたのだという。祖父はそのカードをノートにはさみ、まるで勲章でももらったように大事にした。
+          島の夜は長かった。けれども、物語を読んでいるあいだは、時計の針が急に速く進むように感じられた。気がつくと窓の外は白みはじめ、遠くの漁船がひとつ、またひとつと港を出ていくのが見えた。
+          その冬の嵐がついにやって来たとき、町の明かりはひとつ、またひとつと消えていった。灯台だけが、暗い海の上でゆっくりと回りながら光りつづけた。エリフはこわくなかった。ひざの上には開いた本があり、物語の中の船もまた、嵐の中を進んでいたのだ。
+          「船は助かるかな？」と祖父がきいた。
+          「まだわからない」とエリフは言って、ページをめくった。''')
+          S['zh'] = dict(title='灯塔守护人', search='灯塔',
+          chapters=['一箱书','一百一十二级台阶','冬天的风暴','天气笔记','镇上来的信','故事里的船','岛上的春天','最后一页'],
+          text='''每天傍晚，当最后一条船驶离港口、海鸥也安静下来的时候，艾莉芙就会爬上灯塔的一百一十二级台阶。祖父总是在顶上等她，手里捧着一杯热茶，看着大海从银色变成灰色，再从灰色变成深蓝。
+          “你来晚了。”他总这么说，虽然她从来没有迟到过。
+          灯塔立在海湾尽头的一座小岛上。那里没有路，也没有商店，只有岩石、几棵倔强的松树和风。冬天的风暴非常猛烈，窗玻璃嗡嗡作响，像一件旧乐器的琴弦。祖父守着灯塔的光已经四十年了，他说，这么多年来，他一次也没有觉得无聊。
+          “这怎么可能？”有一天晚上，艾莉芙问他，“这里什么都没有。”
+          祖父笑了笑，指了指床底下的一个木箱。箱子里装满了书，有好几百本，封面柔软而破旧，书页散发着海盐和尘土的气味。里面有旅人和国王的故事，有遥远城市的故事，有很久以前的人的故事，也有从来不曾存在过的人的故事。
+          “海浪吵得睡不着的时候，”他说，“我就读书。这样一来，小岛就变得很大很大。”
+          从那天晚上起，艾莉芙来得更早了。她披着毯子坐在温暖的灯旁读书，祖父则在笔记本上记下天气。有时她大声朗读，祖父就闭上眼睛听着，读到精彩的地方便点点头。
+          祖父的笔记本上，用工整的字迹记着每天的风向和浪高。艾莉芙在每一页的角落里，写下自己读完的书名。渐渐地，那些页面上写满了天气，也写满了书名。“这样一来，这本笔记就既是我的，也是你的了。”祖父说。
+          有一回，镇上的邮差划着小船送来一个包裹。拆开一看，里面是几本崭新的书，还有一张字条：“给灯塔上的两位读者。”原来，镇上的图书馆员听说了他们的故事。祖父把字条夹进笔记本里，郑重得像是收到了一枚勋章。
+          岛上的夜晚很长。可是只要读着故事，时间就好像走得飞快。等她抬起头来，窗外的天空已经泛白，远处的渔船一条接一条地驶出了港口。
+          那年冬天的风暴终于来了，镇上的灯一盏接一盏地熄灭。只有灯塔还亮着，在漆黑的海面上缓缓旋转。艾莉芙一点也不害怕。她的膝上摊着一本书，故事里的那艘船也正穿过一场风暴。
+          “他们能平安吗？”祖父问。
+          “我还不知道呢。”她说着，翻过了一页。''')
+          AUTHOR = 'Deniz Arda'
+          PY
+          cat > mkbooks.py <<'PY'
+          import zipfile, io, os, re, sys, html
+          from PIL import Image, ImageDraw, ImageFont
+          sys.path.insert(0, os.path.dirname(__file__)); import stories
+          import subprocess
+          OUT = os.environ.get('BOOKS', '/home/claude/sahaf-store/books'); os.makedirs(OUT, exist_ok=True)
+          GUT = os.environ.get('GUT', '/tmp/claude-0/-home-claude/1854e050-5273-51c6-9af1-26a5d1abcb72/scratchpad/gut/gutenberg/')
+          fm = lambda q: subprocess.run(['fc-match', '-f', '%{file}', q], capture_output=True, text=True).stdout.strip()
+          LORA = fm('Lora:bold'); CJK = fm('Noto Serif CJK JP:bold'); INTER = fm('Inter:semibold')
+          CJK_IDX = int(subprocess.run(['fc-match', '-f', '%{index}', 'Noto Serif CJK JP:bold'], capture_output=True, text=True).stdout.strip() or 0)
+          def font(path, size, idx=0, bold=True):
+              f = ImageFont.truetype(path, size, index=idx)
+              if 'Lora' in path:
+                  try: f.set_variation_by_name('Bold' if bold else 'Regular')
+                  except Exception: pass
+              return f
+          def wrap(d, text, f, maxw):
+              words = list(text) if re.search(r'[぀-鿿]', text) else text.split()
+              sep = '' if re.search(r'[぀-鿿]', text) else ' '
+              lines, cur = [], ''
+              for w in words:
+                  t = (cur + sep + w) if cur else w
+                  if d.textlength(t, font=f) <= maxw: cur = t
+                  else: lines.append(cur); cur = w
+              if cur: lines.append(cur)
+              return lines
+          def cover(title, author, bg, fg, accent, cjk=False, style=0):
+              W, H = 600, 900
+              im = Image.new('RGB', (W, H), bg); d = ImageDraw.Draw(im)
+              # soft vertical gradient
+              for y in range(H):
+                  k = y / H * 0.22
+                  d.line([(0, y), (W, y)], fill=tuple(int(c * (1 - k)) for c in bg))
+              if style == 0:
+                  d.rectangle([34, 34, W - 34, H - 34], outline=accent, width=3)
+                  d.rectangle([46, 46, W - 46, H - 46], outline=accent, width=1)
+              elif style == 1:
+                  d.rectangle([0, H - 210, W, H - 200], fill=accent)
+                  d.ellipse([W / 2 - 70, 110, W / 2 + 70, 250], outline=accent, width=4)
+              else:
+                  for i in range(7): d.line([(0, 140 + i * 18), (W, 90 + i * 18)], fill=accent, width=2)
+              tf = font(CJK, 64, CJK_IDX) if cjk else font(LORA, 64)
+              lines = wrap(d, title, tf, W - 140)
+              while len(lines) > 4:
+                  tf = font(CJK, tf.size - 6, CJK_IDX) if cjk else font(LORA, tf.size - 6); lines = wrap(d, title, tf, W - 140)
+              lh = tf.size * 1.18; y0 = (H - lh * len(lines)) / 2 - 30
+              for i, ln in enumerate(lines):
+                  d.text((W / 2, y0 + i * lh), ln, font=tf, fill=fg, anchor='ma')
+              d.line([(W / 2 - 40, y0 + lh * len(lines) + 26), (W / 2 + 40, y0 + lh * len(lines) + 26)], fill=accent, width=3)
+              af = font(CJK, 28, CJK_IDX) if cjk else font(INTER, 26)
+              d.text((W / 2, H - 120 if style != 1 else H - 160), author.upper() if not cjk else author, font=af, fill=fg, anchor='ma')
+              b = io.BytesIO(); im.save(b, 'JPEG', quality=88); return b.getvalue()
+          def xhtml(title, body, lang):
+              return f'<?xml version="1.0" encoding="utf-8"?>\n<!DOCTYPE html>\n<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" lang="{lang}" xml:lang="{lang}"><head><title>{html.escape(title)}</title><link rel="stylesheet" type="text/css" href="style.css"/></head><body>{body}</body></html>'
+          CSS = 'body{font-family:"Bitstream Charter",Charter,Georgia,"Noto Serif CJK JP","Noto Serif CJK SC",serif}h1{font-family:Lora,Georgia,"Noto Serif CJK JP","Noto Serif CJK SC",serif;font-weight:600;text-align:center;font-size:1.55em;margin:1.2em 0 .3em}h2.n{font-family:Inter,"Segoe UI",sans-serif;text-align:center;font-size:.72em;letter-spacing:.2em;text-transform:uppercase;font-weight:600;opacity:.6;margin:2.4em 0 0}p{margin:0;text-indent:1.4em;line-height:1.5}p.first{text-indent:0}p.first::first-letter{font-size:3.1em;float:left;line-height:.85;margin:.06em .08em 0 0;font-family:Lora,Georgia,serif}'
+          def build(name, title, author, lang, chapters, cover_bytes):
+              with zipfile.ZipFile(os.path.join(OUT, name), 'w') as z:
+                  z.writestr(zipfile.ZipInfo('mimetype'), 'application/epub+zip', compress_type=zipfile.ZIP_STORED)
+                  D = zipfile.ZIP_DEFLATED
+                  z.writestr('META-INF/container.xml', '<?xml version="1.0"?><container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container"><rootfiles><rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/></rootfiles></container>', compress_type=D)
+                  z.writestr('OEBPS/style.css', CSS, compress_type=D)
+                  z.writestr('OEBPS/cover.jpg', cover_bytes, compress_type=D)
+                  man, spine, nav = ['<item id="css" href="style.css" media-type="text/css"/>', '<item id="cover" href="cover.jpg" media-type="image/jpeg" properties="cover-image"/>', '<item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/>'], [], []
+                  for i, (ct, body) in enumerate(chapters, 1):
+                      z.writestr(f'OEBPS/c{i}.xhtml', xhtml(ct, body, lang), compress_type=D)
+                      man.append(f'<item id="c{i}" href="c{i}.xhtml" media-type="application/xhtml+xml"/>'); spine.append(f'<itemref idref="c{i}"/>')
+                      nav.append(f'<li><a href="c{i}.xhtml">{html.escape(ct)}</a></li>')
+                  z.writestr('OEBPS/nav.xhtml', xhtml('Contents', '<nav epub:type="toc"><ol>' + ''.join(nav) + '</ol></nav>', lang), compress_type=D)
+                  z.writestr('OEBPS/content.opf', f'<?xml version="1.0" encoding="utf-8"?><package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="uid"><metadata xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:identifier id="uid">urn:sahaf:{name}</dc:identifier><dc:title>{html.escape(title)}</dc:title><dc:creator>{html.escape(author)}</dc:creator><dc:language>{lang}</dc:language><meta property="dcterms:modified">2026-11-01T00:00:00Z</meta></metadata><manifest>{"".join(man)}</manifest><spine>{"".join(spine)}</spine></package>', compress_type=D)
+
+          # localized sample stories
+          PAL = [((24, 52, 74), (245, 236, 214), (214, 170, 92))]
+          for lang, s in stories.S.items():
+              paras = s['text'].split('\n')
+              def body(k, ct):
+                  ps = ''.join(f'<p{" class=\"first\"" if j == 0 else ""}>{html.escape(p)}</p>' for j, p in enumerate(paras))
+                  return f'<section epub:type="chapter"><h2 class="n">{k}</h2><h1>{html.escape(ct)}</h1>{ps}</section>'
+              chs = [(ct, body(k, ct)) for k, ct in enumerate(s['chapters'], 1)]
+              build(f'sample-{lang}.epub', s['title'], stories.AUTHOR, lang, chs, cover(s['title'], stories.AUTHOR, (24, 52, 74), (245, 236, 214), (214, 170, 92), cjk=lang in ('ja', 'zh'), style=1))
+
+          # public-domain classics (texts from the NLTK Gutenberg corpus)
+          CL = [('carroll-alice.txt', "Alice's Adventures in Wonderland", 'Lewis Carroll', ((178, 64, 58), (252, 240, 225), (247, 200, 120)), 2),
+                ('austen-emma.txt', 'Emma', 'Jane Austen', ((52, 92, 78), (244, 238, 220), (205, 178, 120)), 0),
+                ('melville-moby_dick.txt', 'Moby-Dick', 'Herman Melville', ((22, 40, 66), (232, 236, 240), (120, 170, 200)), 1),
+                ('austen-persuasion.txt', 'Persuasion', 'Jane Austen', ((120, 84, 140), (248, 240, 248), (230, 200, 230)), 0),
+                ('chesterton-thursday.txt', 'The Man Who Was Thursday', 'G. K. Chesterton', ((30, 30, 34), (240, 220, 160), (200, 160, 60)), 2),
+                ('austen-sense.txt', 'Sense and Sensibility', 'Jane Austen', ((196, 150, 90), (60, 40, 25), (120, 80, 40)), 0),
+                ('chesterton-brown.txt', 'The Innocence of Father Brown', 'G. K. Chesterton', ((92, 56, 40), (246, 228, 200), (214, 160, 100)), 1),
+                ('milton-paradise.txt', 'Paradise Lost', 'John Milton', ((16, 60, 54), (230, 240, 230), (150, 200, 170)), 2),
+                ('whitman-leaves.txt', 'Leaves of Grass', 'Walt Whitman', ((90, 120, 60), (248, 248, 230), (220, 230, 170)), 0),
+                ('shakespeare-hamlet.txt', 'Hamlet', 'William Shakespeare', ((110, 22, 34), (248, 232, 220), (220, 150, 120)), 1)]
+          for fn, title, author, (bg, fg, ac), st in CL:
+              txt = open(GUT + fn, encoding='latin-1').read()
+              parts = re.split(r'\n(?=(?:CHAPTER|Chapter|BOOK|Book|ACT|Actus)\s+[\dIVXLC]+\.?)', txt)
+              if len(parts) < 3: parts = [txt[i:i + 30000] for i in range(0, len(txt), 30000)]
+              chs = []
+              for k, part in enumerate(parts[:60], 1):
+                  lines = part.strip().split('\n')
+                  head = lines[0].strip()[:60] if re.match(r'(CHAPTER|Chapter|BOOK|Book|ACT|Actus)', lines[0]) else f'{k}'
+                  paras = [re.sub(r'\s+', ' ', p).strip() for p in '\n'.join(lines[1:] if head != f'{k}' else lines).split('\n\n')]
+                  paras = [p for p in paras if p]
+                  chs.append((head.title() if head.isupper() else head, f'<section><h1>{html.escape(head)}</h1>' + ''.join(f'<p>{html.escape(p)}</p>' for p in paras) + '</section>'))
+              build(re.sub(r'\W+', '-', title.lower()).strip('-') + '.epub', title, author, 'en', chs, cover(title, author, bg, fg, ac, style=st))
+          print(sorted(os.listdir(OUT)))
+          PY
+          cat > shots.py <<'PY'
+          import asyncio, os, sys, json
+          from playwright.async_api import async_playwright
+          sys.path.insert(0, os.path.dirname(__file__)); import stories
+          B = os.environ.get('BOOKS', '/home/claude/sahaf-store/books').rstrip('/') + '/'; OUT = os.environ.get('OUT', '/home/claude/sahaf-store/shots').rstrip('/') + '/'; os.makedirs(OUT, exist_ok=True)
+          APP = os.environ.get('APP', 'http://localhost:8765/')
+          CLASSICS = ['hamlet', 'leaves-of-grass', 'paradise-lost', 'the-innocence-of-father-brown', 'sense-and-sensibility', 'the-man-who-was-thursday', 'persuasion', 'moby-dick', 'emma', 'alice-s-adventures-in-wonderland']
+          # progress per title (pct), None = new; order of "recently read" follows list order (last = most recent)
+          PROG = {'Hamlet': 1.0, 'Leaves of Grass': None, 'Paradise Lost': None, 'The Innocence of Father Brown': 0.08, 'Sense and Sensibility': None,
+                  'The Man Who Was Thursday': 0.41, 'Persuasion': 0.27, 'Moby-Dick': 0.12, 'Emma': 1.0, "Alice's Adventures in Wonderland": 0.64}
+          NAMES = ['1-okuma', '2-kitaplik', '3-gorunum', '4-icindekiler', '5-arama']
+          LANGS = sys.argv[1:] or list(stories.S)
+          async def ready(pg):
+              await pg.wait_for_function('window.__sahaf.R.doc && !window.__sahaf.R.busy', timeout=20000); await pg.wait_for_timeout(700)
+          async def one(b, lang):
+              s = stories.S[lang]
+              ctx = await b.new_context(viewport={'width': 1280, 'height': 720}, device_scale_factor=1.5, locale={'zh': 'zh-CN', 'pt': 'pt-BR'}.get(lang, lang), color_scheme='light')
+              cjk = lang in ('ja', 'zh')
+              settings = {'theme': 'light', 'size': 125 if cjk else 110, 'font': 'pub', 'lh': 0, 'margin': 'm', 'layout': 'paged', 'spread': 'auto', 'justify': True}
+              await ctx.add_init_script(f"try{{localStorage.setItem('sahaf-lang', {json.dumps(json.dumps(lang))}); if(!localStorage.getItem('sahaf-settings')) localStorage.setItem('sahaf-settings', {json.dumps(json.dumps(settings))});}}catch(e){{}}")
+              pg = await ctx.new_page()
+              await pg.goto(APP); await pg.wait_for_timeout(500)
+              await pg.set_input_files('#fileIn', [B + c + '.epub' for c in CLASSICS]); 
+              await pg.wait_for_function('document.querySelectorAll(".card").length >= 10', timeout=60000)
+              await pg.set_input_files('#fileIn', B + f'sample-{lang}.epub'); await ready(pg)
+              await pg.click('#rBack'); await pg.wait_for_timeout(400)
+              await pg.evaluate('''async (PROG) => {
+                const all = await __sahaf.DB.all(); const now = Date.now(); const order = Object.keys(PROG);
+                for (const r of all) {
+                  const k = order.indexOf(r.title);
+                  if (k < 0) { r.opened = now; r.progress = { i: 0, frac: 0, pct: 0.07, href: 'OEBPS/c1.xhtml' }; }
+                  else { const p = PROG[r.title]; r.opened = p == null ? 0 : now - (order.length - k) * 3600e3; r.added = now - 90 * 86400e3 + k * 1000; r.progress = p == null ? null : { i: 0, frac: 0, pct: p }; }
+                  await __sahaf.DB.put('books', r);
+                }
+              }''', PROG)
+              await pg.reload(); await pg.wait_for_timeout(900)
+              # 2: library
+              await pg.mouse.move(5, 700)
+              await pg.screenshot(path=OUT + f'{lang}-{NAMES[1]}.png')
+              # 1: reading, two-page spread
+              await pg.click('.card >> nth=0'); await ready(pg)
+              await pg.screenshot(path=OUT + f'{lang}-{NAMES[0]}.png')
+              await pg.click('#rBack'); await pg.wait_for_timeout(600)
+              # 3: sepia + display settings
+              await pg.click('.card >> nth=0'); await ready(pg)
+              await pg.click('#rAa'); await pg.click('#thSel button[data-v="sepia"]'); await pg.wait_for_timeout(600)
+              await pg.screenshot(path=OUT + f'{lang}-{NAMES[2]}.png')
+              await pg.keyboard.press('Escape')
+              # 4: dark + contents
+              await pg.click('#rAa'); await pg.click('#thSel button[data-v="dark"]'); await pg.keyboard.press('Escape'); await pg.wait_for_timeout(300)
+              await pg.keyboard.press('ArrowRight'); await pg.wait_for_timeout(300)
+              await pg.click('#rToc'); await pg.wait_for_timeout(600)
+              await pg.screenshot(path=OUT + f'{lang}-{NAMES[3]}.png')
+              await pg.keyboard.press('Escape'); await pg.click('#scrim') if await pg.is_visible('#scrim') else None
+              # 5: search, light
+              await pg.click('#rAa'); await pg.click('#thSel button[data-v="light"]'); await pg.keyboard.press('Escape'); await pg.wait_for_timeout(300)
+              await pg.keyboard.press('Home'); await pg.wait_for_timeout(200)
+              await pg.click('#rSearch'); await pg.fill('#sInput', s['search']); await pg.press('#sInput', 'Enter'); await pg.wait_for_timeout(1500)
+              await pg.click('#sList button.it >> nth=1'); await ready(pg)
+              await pg.screenshot(path=OUT + f'{lang}-{NAMES[4]}.png')
+              await ctx.close()
+          async def main():
+              async with async_playwright() as p:
+                  b = await p.chromium.launch()
+                  for lang in LANGS:
+                      await one(b, lang); print('done', lang, flush=True)
+                  await b.close()
+          asyncio.run(main())
+          PY
+          BOOKS=$PWD/books GUT=$PWD/gutenberg/ python mkbooks.py
+      - name: Screenshots
+        run: |
+          (cd site && python -m http.server 8765 --bind 127.0.0.1 > /dev/null 2>&1 &)
+          sleep 2
+          cd work && BOOKS=$PWD/books OUT=$PWD/shots APP=http://localhost:8765/ python shots.py
+          ls -la shots
+      - name: Publish to the store-assets branch
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd work/shots
+          git init -q -b store-assets
+          git add .
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -q -m "Store screenshots"
+          git push -f "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git" store-assets
