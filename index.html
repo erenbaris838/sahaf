@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sahaf — EPUB Reader</title>
+<meta name="description" content="Read EPUB e-books on Windows and any computer. Free, offline and private: remembers your page, dark and sepia themes, table of contents, search and bookmarks.">
+<meta name="theme-color" content="#F7F4EE" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#141312" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="icon" href="icon-192.png" sizes="192x192" type="image/png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta property="og:title" content="Sahaf — EPUB Reader">
+<meta property="og:description" content="Read EPUB books offline. Free and private.">
+<meta property="og:image" content="icon-512.png">
+<style>
+:root{
+  --bg:#F7F4EE;--surface:#FFFFFF;--surface2:#EFEBE3;--ink:#1E1B18;--muted:#6B655D;--line:#E4DED3;
+  --accent:#9C2F2A;--accent2:#B53B34;--accent-ink:#FFFFFF;--ok:#2D7D52;--err:#C0392B;
+  --shadow:0 1px 2px rgba(30,20,10,.06),0 8px 24px rgba(30,20,10,.08);--r:14px;color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root{--bg:#141312;--surface:#1D1B19;--surface2:#28251F;--ink:#F1EDE6;--muted:#A8A196;--line:#34302A;--accent:#E2685D;--accent2:#F08277;--accent-ink:#1E0B09;--ok:#4CC38A;--err:#FF7B6E;--shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px rgba(0,0,0,.35);color-scheme:dark}
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 "Segoe UI Variable Text","Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,"Noto Sans","PingFang SC","Hiragino Sans","Yu Gothic UI",sans-serif;-webkit-font-smoothing:antialiased}
+button,select,input{font:inherit;color:inherit}
+button{cursor:pointer}
+[hidden]{display:none!important}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+svg.i{width:20px;height:20px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.app{display:flex;flex-direction:column;height:100%;min-height:0}
+/* header */
+.top{display:flex;align-items:center;gap:10px;padding:10px 16px;padding-top:max(10px,env(safe-area-inset-top));border-bottom:1px solid var(--line);background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(12px);position:relative;z-index:5;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px;min-width:0;margin-right:auto}
+.brand svg{width:30px;height:30px;flex:none}
+.brand b{font-size:18px;letter-spacing:-.01em}
+.brand small{color:var(--muted);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tbtn{display:inline-flex;align-items:center;gap:7px;height:36px;padding:0 12px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);white-space:nowrap}
+.tbtn:hover{border-color:color-mix(in srgb,var(--ink) 25%,var(--line))}
+.tbtn.accent{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+.tbtn.accent:hover{background:var(--accent2);border-color:var(--accent2)}
+select.tbtn{padding:0 8px;appearance:auto}
+.search{position:relative;display:flex;align-items:center}
+.search svg{position:absolute;left:10px;width:17px;height:17px;color:var(--muted);pointer-events:none}
+.search input{height:36px;width:220px;border-radius:10px;border:1px solid var(--line);background:var(--surface);padding:0 10px 0 34px}
+/* empty state */
+.main{flex:1;min-height:0;overflow:auto}
+.empty{min-height:100%;display:flex;align-items:center;justify-content:center;padding:28px 16px}
+.hero{width:min(760px,100%);text-align:center}
+.hero h1{font-size:clamp(26px,4.2vw,40px);line-height:1.12;letter-spacing:-.02em;margin:0 0 10px;font-family:Georgia,"Iowan Old Style","Palatino Linotype",serif;font-weight:600}
+.hero p.sub{color:var(--muted);font-size:clamp(15px,1.7vw,17px);margin:0 auto 26px;max-width:600px}
+.drop{border:2px dashed color-mix(in srgb,var(--accent) 45%,var(--line));border-radius:22px;background:var(--surface);padding:34px 20px 28px;box-shadow:var(--shadow)}
+.drop .big{width:64px;height:64px;margin:0 auto 12px;border-radius:18px;display:grid;place-items:center;background:color-mix(in srgb,var(--accent) 12%,transparent);color:var(--accent)}
+.drop .big svg{width:34px;height:34px}
+.drop h2{font-size:19px;margin:0 0 14px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 20px;border-radius:12px;border:1px solid var(--line);background:var(--surface2);color:var(--ink);font-weight:600}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover{background:var(--accent2);border-color:var(--accent2)}
+.hint{color:var(--muted);font-size:13px;margin-top:14px}
+.badges{display:flex;flex-wrap:wrap;justify-content:center;gap:8px 18px;margin:24px 0 8px;font-size:14px}
+.badges span{display:inline-flex;align-items:center;gap:7px}
+.badges svg{width:18px;height:18px;color:var(--ok)}
+.install-tip{margin:20px auto 0;max-width:560px;display:flex;align-items:center;gap:12px;justify-content:center;padding:12px 14px;border-radius:12px;background:var(--surface2);font-size:14px;text-align:left}
+/* library */
+.lib{padding:18px 16px 30px;max-width:1400px;margin:0 auto}
+.libhead{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+.libhead h2{margin:0;font-size:20px;margin-right:auto}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:22px 18px}
+.card{position:relative;cursor:pointer;border-radius:10px;outline-offset:4px}
+.card .cv{aspect-ratio:2/3;border-radius:8px;overflow:hidden;background:var(--surface2);box-shadow:0 1px 2px rgba(0,0,0,.12),0 6px 16px rgba(0,0,0,.12);position:relative;transition:transform .15s,box-shadow .15s}
+.card:hover .cv{transform:translateY(-3px);box-shadow:0 2px 4px rgba(0,0,0,.14),0 12px 26px rgba(0,0,0,.16)}
+.card .cv img{width:100%;height:100%;object-fit:cover;display:block}
+.card .gen{position:absolute;inset:0;padding:16px 12px;display:flex;flex-direction:column;justify-content:space-between;color:#fff;font-family:Georgia,"Iowan Old Style",serif;text-align:center}
+.card .gen b{font-size:16px;line-height:1.2;display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word}
+.card .gen span{font-size:12px;opacity:.85}
+.card .t{margin-top:9px;font-size:14px;font-weight:600;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word}
+.card .a{font-size:12.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.card .pg{display:flex;align-items:center;gap:8px;margin-top:6px;font-size:12px;color:var(--muted)}
+.card .pg i{flex:1;height:4px;border-radius:3px;background:var(--line);overflow:hidden;position:relative}
+.card .pg i::after{content:"";position:absolute;inset:0;width:var(--p,0%);background:var(--accent)}
+.card .new{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--accent)}
+.card .del{position:absolute;top:6px;right:6px;width:32px;height:32px;border-radius:9px;border:0;background:rgba(0,0,0,.55);color:#fff;display:grid;place-items:center;opacity:0;transition:opacity .15s}
+.card:hover .del,.card:focus-within .del{opacity:1}
+.card .del svg{width:17px;height:17px}
+.foot{margin-top:34px;padding-top:16px;border-top:1px solid var(--line);display:flex;gap:8px 18px;flex-wrap:wrap;color:var(--muted);font-size:13px}
+.foot a{color:inherit}
+.dropzone{position:fixed;inset:0;z-index:60;background:color-mix(in srgb,var(--accent) 16%,transparent);border:3px dashed var(--accent);display:grid;place-items:center;pointer-events:none}
+.dropzone div{background:var(--surface);padding:18px 26px;border-radius:16px;font-size:18px;font-weight:600;box-shadow:var(--shadow)}
+.toast{position:fixed;left:50%;bottom:max(22px,env(safe-area-inset-bottom));transform:translateX(-50%);z-index:80;background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-size:14px;box-shadow:var(--shadow);max-width:calc(100% - 32px)}
+.spin{width:22px;height:22px;border-radius:50%;border:3px solid color-mix(in srgb,var(--accent) 25%,transparent);border-top-color:var(--accent);animation:sp .8s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+dialog{border:0;border-radius:16px;background:var(--surface);color:var(--ink);padding:22px;max-width:min(420px,calc(100% - 32px));box-shadow:var(--shadow)}
+dialog::backdrop{background:rgba(0,0,0,.4)}
+dialog h3{margin:0 0 8px;font-size:18px}
+dialog p{margin:0 0 18px;color:var(--muted)}
+dialog .row{display:flex;gap:10px;justify-content:flex-end}
+dialog .btn{height:40px}
+dialog .btn.danger{background:var(--err);border-color:var(--err);color:#fff}
+
+/* ---------- reader ---------- */
+.reader{position:fixed;inset:0;z-index:30;display:flex;flex-direction:column;background:var(--rbg);color:var(--rfg);
+  --rbg:#FBF9F4;--rfg:#221E1A;--rmuted:#7A7268;--rline:#E6E0D6;--rpanel:#FFFFFF;--racc:#9C2F2A}
+.reader[data-th="sepia"]{--rbg:#F4ECD8;--rfg:#3B2F21;--rmuted:#7D6B53;--rline:#E2D5B8;--rpanel:#FAF4E6;--racc:#9C4A1E}
+.reader[data-th="dark"]{--rbg:#1C1B19;--rfg:#DCD6CC;--rmuted:#948C80;--rline:#34312C;--rpanel:#26241F;--racc:#E8826F;color-scheme:dark}
+.reader[data-th="black"]{--rbg:#000000;--rfg:#C9C4BC;--rmuted:#8A847B;--rline:#262422;--rpanel:#141312;--racc:#E8826F;color-scheme:dark}
+.rbar{display:flex;align-items:center;gap:4px;height:52px;padding:0 8px;padding-top:env(safe-area-inset-top);flex:none}
+.rbar .rt{flex:1;min-width:0;text-align:center;padding:0 8px}
+.rbar .rt b{display:block;font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rbar .rt span{display:block;font-size:12px;color:var(--rmuted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rb{width:40px;height:40px;border-radius:10px;border:0;background:transparent;color:var(--rfg);display:inline-grid;place-items:center;flex:none}
+.rb:hover{background:color-mix(in srgb,var(--rfg) 9%,transparent)}
+.rb.on{color:var(--racc)}
+.rb.on svg{fill:currentColor}
+.stage{flex:1;min-height:0;position:relative;overflow:hidden;display:flex;justify-content:center}
+.stage iframe{border:0;display:block;background:transparent;flex:none}
+.stage .loading{position:absolute;inset:0;display:grid;place-items:center}
+.edge{position:absolute;top:0;bottom:0;width:56px;border:0;background:transparent;color:var(--rmuted);display:grid;place-items:center;opacity:0;transition:opacity .15s;z-index:2}
+.edge:hover{opacity:1}
+.edge.l{left:0}.edge.r{right:0}
+.edge svg{width:28px;height:28px}
+.rfoot{flex:none;padding:4px 16px 10px;padding-bottom:max(10px,env(safe-area-inset-bottom));display:flex;align-items:center;gap:14px;font-size:12.5px;color:var(--rmuted)}
+.rfoot .ch{flex:0 1 32%;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rfoot input{flex:1;min-width:60px;accent-color:var(--racc)}
+.rfoot .pn{flex:none;font-variant-numeric:tabular-nums;white-space:nowrap}
+.panel{position:absolute;top:0;bottom:0;right:0;width:min(380px,100%);background:var(--rpanel);border-left:1px solid var(--rline);z-index:40;display:flex;flex-direction:column;box-shadow:-8px 0 30px rgba(0,0,0,.12)}
+.panel.left{left:0;right:auto;border-left:0;border-right:1px solid var(--rline);box-shadow:8px 0 30px rgba(0,0,0,.12)}
+.phead{display:flex;align-items:center;gap:6px;padding:10px 10px 6px 16px;padding-top:max(10px,env(safe-area-inset-top))}
+.phead h3{margin:0;font-size:16px;flex:1}
+.tabs{display:flex;gap:4px;padding:0 12px 8px;border-bottom:1px solid var(--rline)}
+.tabs button{border:0;background:transparent;height:34px;padding:0 12px;border-radius:9px;color:var(--rmuted);font-weight:600}
+.tabs button.on{background:color-mix(in srgb,var(--rfg) 9%,transparent);color:var(--rfg)}
+.plist{flex:1;overflow:auto;padding:6px 0 20px}
+.plist a,.plist button.it{display:block;width:100%;text-align:left;border:0;background:transparent;color:var(--rfg);padding:9px 16px;font-size:14px;line-height:1.35;text-decoration:none;cursor:pointer}
+.plist a:hover,.plist button.it:hover{background:color-mix(in srgb,var(--rfg) 7%,transparent)}
+.plist .cur{color:var(--racc);font-weight:600}
+.plist .sub{color:var(--rmuted);font-size:12.5px;display:block;margin-top:2px}
+.plist mark{background:color-mix(in srgb,var(--racc) 28%,transparent);color:inherit;border-radius:3px}
+.plist .none{padding:24px 16px;color:var(--rmuted);font-size:14px}
+.bmrow{display:flex;align-items:center}
+.bmrow button.it{flex:1}
+.bmrow .rb{width:34px;height:34px;margin-right:8px;color:var(--rmuted)}
+.sform{padding:8px 12px 10px;border-bottom:1px solid var(--rline);display:flex;gap:8px}
+.sform input{flex:1;height:38px;border-radius:10px;border:1px solid var(--rline);background:var(--rbg);color:var(--rfg);padding:0 12px}
+.sform .scount{font-size:12.5px;color:var(--rmuted)}
+.pop{position:absolute;top:calc(52px + env(safe-area-inset-top));right:8px;z-index:45;width:min(340px,calc(100% - 16px));background:var(--rpanel);border:1px solid var(--rline);border-radius:16px;box-shadow:0 12px 40px rgba(0,0,0,.2);padding:16px;display:flex;flex-direction:column;gap:14px;max-height:calc(100% - 70px);overflow:auto}
+.pop .lbl{font-size:12.5px;font-weight:600;color:var(--rmuted);margin-bottom:6px}
+.swatch{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.swatch button{height:40px;border-radius:10px;border:2px solid var(--rline);font-weight:700;font-size:13px}
+.swatch button.on{border-color:var(--racc);box-shadow:0 0 0 1px var(--racc)}
+.seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;background:color-mix(in srgb,var(--rfg) 7%,transparent);border-radius:11px;padding:3px;gap:3px}
+.seg button{border:0;background:transparent;height:34px;border-radius:9px;font-weight:600;font-size:13.5px;color:var(--rmuted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 4px}
+.seg button.on{background:var(--rpanel);color:var(--rfg);box-shadow:0 1px 3px rgba(0,0,0,.14)}
+.step{display:flex;align-items:center;gap:10px}
+.step button{width:40px;height:36px;border-radius:10px;border:1px solid var(--rline);background:transparent;color:var(--rfg);font-weight:700}
+.step output{flex:1;text-align:center;font-variant-numeric:tabular-nums;font-weight:600}
+.tg{display:flex;align-items:center;gap:10px;font-size:14px;cursor:pointer;justify-content:space-between}
+.tg input{appearance:none;width:38px;height:22px;border-radius:12px;background:var(--rline);position:relative;flex:none;transition:background .15s;cursor:pointer;margin:0}
+.tg input::after{content:"";position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:transform .15s;box-shadow:0 1px 2px rgba(0,0,0,.25)}
+.tg input:checked{background:var(--racc)}
+.tg input:checked::after{transform:translateX(16px)}
+.note{position:absolute;left:50%;bottom:70px;transform:translateX(-50%);z-index:46;width:min(560px,calc(100% - 24px));max-height:45%;overflow:auto;background:var(--rpanel);color:var(--rfg);border:1px solid var(--rline);border-radius:14px;box-shadow:0 12px 40px rgba(0,0,0,.25);padding:14px 44px 14px 16px;font-size:15px;line-height:1.5}
+.note .rb{position:absolute;top:6px;right:6px;width:32px;height:32px}
+.scrim{position:absolute;inset:0;z-index:35;background:rgba(0,0,0,.18)}
+.rtoast{position:absolute;left:50%;bottom:64px;transform:translateX(-50%);z-index:50;background:var(--rfg);color:var(--rbg);padding:8px 14px;border-radius:10px;font-size:13.5px}
+.rerr{position:absolute;inset:0;display:grid;place-items:center;padding:24px;text-align:center;color:var(--rmuted)}
+@media (max-width:700px){
+  .brand small{display:none}
+  .search input{width:150px}
+  .top .tbtn .lbl{display:none}
+  .rbar .rt span{display:none}
+  .rfoot .ch{display:none}
+  .grid{grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:18px 14px}
+  .edge{display:none}
+}
+@media (max-width:420px){ .rb.opt{display:none} }
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <header class="top">
+    <div class="brand">
+      <svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="15" fill="#9C2F2A"/><path d="M11 19.5c7.3-3.2 14.4-3 21 1.2v26.6c-6.6-4-13.7-4.3-21-1.4z" fill="#FBF3E4"/><path d="M53 19.5c-7.3-3.2-14.4-3-21 1.2v26.6c6.6-4 13.7-4.3 21-1.4z" fill="#EAD7B4"/><path d="M15.5 26c4-1.2 8-1 11.5.6M15.5 31c4-1.2 8-1 11.5.6M15.5 36c4-1.2 8-1 11.5.6M37 26.6c3.5-1.6 7.5-1.8 11.5-.6M37 31.6c3.5-1.6 7.5-1.8 11.5-.6M37 36.6c3.5-1.6 7.5-1.8 11.5-.6" stroke="#9C2F2A" stroke-opacity=".45" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg>
+      <b>Sahaf</b><small data-t="tagline"></small>
+    </div>
+    <label class="search" id="searchWrap" hidden><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="libSearch" type="search" data-tp="searchLib"></label>
+    <select class="tbtn" id="sortSel" hidden aria-label="Sort">
+      <option value="recent" data-t="sortRecent"></option><option value="title" data-t="sortTitle"></option><option value="author" data-t="sortAuthor"></option>
+    </select>
+    <button class="tbtn" id="btnInstall" hidden><svg class="i" viewBox="0 0 24 24"><path d="M12 4v11m0 0-4-4m4 4 4-4M5 20h14"/></svg><span class="lbl" data-t="install"></span></button>
+    <button class="tbtn accent" id="btnAdd"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg><span class="lbl" data-t="addBooks"></span></button>
+    <select class="tbtn" id="langSel" aria-label="Language"></select>
+  </header>
+  <main class="main" id="main">
+    <section class="empty" id="empty">
+      <div class="hero">
+        <h1 data-t="heroTitle"></h1>
+        <p class="sub" data-t="heroSub"></p>
+        <div class="drop" id="drop">
+          <div class="big"><svg class="i" viewBox="0 0 24 24"><path d="M3 5.5C5.8 4.2 8.9 4.3 12 6.2v13.2c-3.1-1.9-6.2-2-9-.7zM21 5.5c-2.8-1.3-5.9-1.2-9 .7v13.2c3.1-1.9 6.2-2 9-.7z"/></svg></div>
+          <h2 data-t="dropTitle"></h2>
+          <button class="btn primary" id="btnOpen"><svg class="i" viewBox="0 0 24 24"><path d="M4 7a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/></svg><span data-t="openBook"></span></button>
+          <div class="hint" data-t="dropHint"></div>
+        </div>
+        <div class="badges">
+          <span><svg class="i" viewBox="0 0 24 24"><path d="m5 12 5 5 9-10"/></svg><b data-t="bOffline"></b></span>
+          <span><svg class="i" viewBox="0 0 24 24"><path d="m5 12 5 5 9-10"/></svg><b data-t="bPrivate"></b></span>
+          <span><svg class="i" viewBox="0 0 24 24"><path d="m5 12 5 5 9-10"/></svg><b data-t="bResume"></b></span>
+          <span><svg class="i" viewBox="0 0 24 24"><path d="m5 12 5 5 9-10"/></svg><b data-t="bThemes"></b></span>
+        </div>
+        <div class="install-tip" id="installTip" hidden><span data-t="installTip"></span><button class="btn primary" style="height:36px" id="btnInstall2" data-t="install"></button></div>
+      </div>
+    </section>
+    <section class="lib" id="lib" hidden>
+      <div class="libhead"><h2 id="libTitle"></h2></div>
+      <div class="grid" id="grid"></div>
+      <div class="foot"><span id="storeInfo"></span><a href="privacy.html" target="_blank" rel="noopener" data-t="privacy"></a><span>Sahaf <span id="ver"></span></span></div>
+    </section>
+  </main>
+</div>
+
+<div class="reader" id="reader" hidden>
+  <div class="rbar">
+    <button class="rb" id="rBack" data-tt="back"><svg class="i" viewBox="0 0 24 24"><path d="M15 5 8 12l7 7"/></svg></button>
+    <button class="rb" id="rToc" data-tt="contents"><svg class="i" viewBox="0 0 24 24"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/></svg></button>
+    <div class="rt"><b id="rTitle"></b><span id="rChap"></span></div>
+    <button class="rb" id="rSearch" data-tt="search"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></button>
+    <button class="rb" id="rMark" data-tt="bookmark"><svg class="i" viewBox="0 0 24 24"><path d="M6 4h12v16l-6-4-6 4z"/></svg></button>
+    <button class="rb" id="rAa" data-tt="display"><svg class="i" viewBox="0 0 24 24"><path d="M3 19 8 6l5 13M4.8 14.5h6.4M14.5 19l3.2-8 3.3 8M15.6 16.4h4.3"/></svg></button>
+    <button class="rb opt" id="rFull" data-tt="fullscreen"><svg class="i" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+  </div>
+  <div class="stage" id="stage">
+    <iframe id="frame" title="Book" sandbox="allow-same-origin"></iframe>
+    <button class="edge l" id="edgeL" tabindex="-1" aria-hidden="true"><svg class="i" viewBox="0 0 24 24"><path d="M15 5 8 12l7 7"/></svg></button>
+    <button class="edge r" id="edgeR" tabindex="-1" aria-hidden="true"><svg class="i" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></svg></button>
+    <div class="loading" id="rLoading"><div class="spin"></div></div>
+    <div class="rerr" id="rErr" hidden></div>
+  </div>
+  <div class="rfoot">
+    <span class="ch" id="fChap"></span>
+    <input type="range" id="rSlider" min="0" max="1000" value="0" aria-label="Progress">
+    <span class="pn" id="fPage"></span>
+  </div>
+  <div class="scrim" id="scrim" hidden></div>
+  <aside class="panel left" id="tocPanel" hidden>
+    <div class="phead"><h3 id="pBookTitle"></h3><button class="rb" data-close data-tt="close"><svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+    <div class="tabs"><button class="on" data-tab="toc" data-t="contents"></button><button data-tab="marks" data-t="bookmarks"></button></div>
+    <div class="plist" id="tocList"></div>
+    <div class="plist" id="markList" hidden></div>
+  </aside>
+  <aside class="panel" id="searchPanel" hidden>
+    <div class="phead"><h3 data-t="searchBook"></h3><button class="rb" data-close data-tt="close"><svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+    <form class="sform" id="sForm"><input id="sInput" type="search" data-tp="searchPh" autocomplete="off"></form>
+    <div class="plist" id="sList"></div>
+  </aside>
+  <div class="pop" id="aaPop" hidden>
+    <div><div class="lbl" data-t="theme"></div><div class="swatch" id="thSel">
+      <button data-v="auto" style="background:linear-gradient(135deg,#FBF9F4 50%,#1C1B19 50%);color:#9C2F2A">A</button>
+      <button data-v="light" style="background:#FBF9F4;color:#221E1A">Aa</button>
+      <button data-v="sepia" style="background:#F4ECD8;color:#3B2F21">Aa</button>
+      <button data-v="dark" style="background:#1C1B19;color:#DCD6CC">Aa</button>
+      <button data-v="black" style="background:#000;color:#C9C4BC">Aa</button>
+    </div></div>
+    <div><div class="lbl" data-t="fontSize"></div><div class="step"><button id="fsMinus" aria-label="−">A−</button><output id="fsOut">100%</output><button id="fsPlus" aria-label="+">A+</button></div></div>
+    <div><div class="lbl" data-t="font"></div><div class="seg" id="fontSel"><button data-v="pub" data-t="fPublisher"></button><button data-v="serif" data-t="fSerif" style="font-family:Georgia,serif"></button><button data-v="sans" data-t="fSans"></button></div></div>
+    <div><div class="lbl" data-t="lineSpacing"></div><div class="seg" id="lhSel"><button data-v="0" data-t="lhPub"></button><button data-v="1.35">1.35</button><button data-v="1.6">1.6</button><button data-v="1.9">1.9</button></div></div>
+    <div><div class="lbl" data-t="margins"></div><div class="seg" id="mgSel"><button data-v="s" data-t="small"></button><button data-v="m" data-t="medium"></button><button data-v="l" data-t="large"></button></div></div>
+    <div><div class="lbl" data-t="layout"></div><div class="seg" id="lySel"><button data-v="paged" data-t="paged"></button><button data-v="scroll" data-t="scrolled"></button></div></div>
+    <div id="spreadRow"><div class="lbl" data-t="columns"></div><div class="seg" id="spSel"><button data-v="auto" data-t="auto"></button><button data-v="1">1</button><button data-v="2">2</button></div></div>
+    <label class="tg"><span data-t="justify"></span><input type="checkbox" id="justify"></label>
+  </div>
+  <div class="note" id="note" hidden><button class="rb" id="noteClose" data-tt="close"><svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button><div id="noteBody"></div></div>
+  <div class="rtoast" id="rToast" hidden></div>
+</div>
+
+<div class="dropzone" id="dropzone" hidden><div data-t="dropHere"></div></div>
+<div class="toast" id="toast" hidden></div>
+<dialog id="confirmDlg"><h3 id="cTitle"></h3><p id="cText"></p><div class="row"><button class="btn" value="no" id="cNo" data-t="cancel"></button><button class="btn danger" id="cYes" data-t="remove"></button></div></dialog>
+<input type="file" id="fileIn" accept=".epub,application/epub+zip" multiple hidden>
+<script src="lang.js"></script>
+<script src="book.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
